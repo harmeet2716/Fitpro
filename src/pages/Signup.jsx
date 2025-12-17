@@ -5,6 +5,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Zap, User, Phone, ShieldCheck, Target, Activity, Users, Award, TrendingUp, Calendar, CheckCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import api from "../api";
 
 export default function ProfessionalSignup({ setUser }) {
   const navigate = useNavigate();
@@ -20,7 +21,6 @@ export default function ProfessionalSignup({ setUser }) {
   const [passwordError, setPasswordError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-
   const strongPasswordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{7,}$/;
 
   const handlePasswordChange = (e) => {
@@ -73,11 +73,7 @@ export default function ProfessionalSignup({ setUser }) {
       }
 
       // Auto login after signup
-      const loginRes = await fetch("http://localhost:5000/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const loginRes = await api.post("/api/users/login", { email, password });
 
       const loginData = await loginRes.json();
 

@@ -5,7 +5,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Mail, Lock, Eye, EyeOff, Dumbbell, Zap, Target, Activity, TrendingUp, Users, Award } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-
+import api from "../api";
 export default function ProfessionalLogin({ setUser }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -20,12 +20,7 @@ export default function ProfessionalLogin({ setUser }) {
 
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
+      const res = api.post("/api/users/login", { email, password });
       const data = await res.json();
       if (!res.ok) return alert(data.message || "Login failed");
 
