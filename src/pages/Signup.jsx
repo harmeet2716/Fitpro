@@ -52,19 +52,8 @@ export default function ProfessionalSignup({ setUser }) {
 
     setIsLoading(true);
     try {
-      // Signup API call
-      const res = await fetch("http://localhost:5000/api/users/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          firstname, 
-          lastname, 
-          email, 
-          password, 
-          number,
-          gender 
-        }),
-      });
+     // Signup      
+      const res = await api.post("/users/signup", { firstname, lastname, email, password, number, gender });
 
       const data = await res.json();
 
