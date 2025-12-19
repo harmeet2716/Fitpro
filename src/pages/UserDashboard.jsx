@@ -47,7 +47,7 @@ import {
   ChevronDown,
   BookOpen,
   Users,
-  Apple,
+  Apple as AppleIcon,
   Plus,
   Cloud,
   CloudRain,
@@ -70,7 +70,13 @@ import {
   Sunrise,
   Sunset,
   Umbrella,
-  CloudLightning
+  CloudLightning,
+  Apple,
+  Target as TargetIcon,
+  HeartPulse,
+  Waves,
+  Thermometer,
+  Wind
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -108,6 +114,22 @@ export default function ProfessionalFitnessDashboard() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showStats, setShowStats] = useState(true);
 
+  // Fitness Tracking State (Apple Fitness-like)
+  const [stepCount, setStepCount] = useState(0);
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
+  const [activeMinutes, setActiveMinutes] = useState(0);
+  const [distanceWalked, setDistanceWalked] = useState(0);
+  const [heartRate, setHeartRate] = useState({ current: 72, resting: 62 });
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackingStartTime, setTrackingStartTime] = useState(null);
+  const trackingIntervalRef = useRef(null);
+
+  // Step count targets
+  const stepTarget = 10000;
+  const calorieTarget = 500;
+  const activeMinutesTarget = 60;
+  const distanceTarget = 5.0; // km
+
   // Check screen size
   useEffect(() => {
     const handleResize = () => {
@@ -126,7 +148,7 @@ export default function ProfessionalFitnessDashboard() {
     { name: 'Workouts', path: '/workout-planner', icon: ListChecks, description: 'Plan & Track', color: 'text-orange-600 bg-orange-50', badge: '3' },
     { name: 'Exercises', path: '/exercise-library', icon: BookOpen, description: 'Library', color: 'text-green-600 bg-green-50', badge: 'New' },
     { name: 'Progress', path: '/progress-tracker', icon: TrendingUp, description: 'Analytics', color: 'text-purple-600 bg-purple-50', badge: '' },
-    { name: 'Nutrition', path: '/nutrition', icon: Apple, description: 'Meal Planning', color: 'text-teal-600 bg-teal-50', badge: '' },
+    { name: 'Nutrition', path: '/nutrition', icon: AppleIcon, description: 'Meal Planning', color: 'text-teal-600 bg-teal-50', badge: '' },
     { name: 'Community', path: '/community', icon: Users, description: 'Network', color: 'text-indigo-600 bg-indigo-50', badge: '' },
   ];
 
@@ -143,7 +165,7 @@ export default function ProfessionalFitnessDashboard() {
   // Quick actions for mobile
   const quickActions = [
     { label: 'Start Workout', icon: Play, color: 'bg-orange-500', onClick: () => navigate('/workout-planner') },
-    { label: 'Log Meal', icon: Apple, color: 'bg-green-500', onClick: () => navigate('/nutrition') },
+    { label: 'Log Meal', icon: AppleIcon, color: 'bg-green-500', onClick: () => navigate('/nutrition') },
     { label: 'Track Water', icon: Droplets, color: 'bg-blue-500', onClick: () => navigate('/nutrition') },
     { label: 'Quick Stats', icon: BarChart3, color: 'bg-purple-500', onClick: () => navigate('/progress-tracker') },
   ];
@@ -202,6 +224,51 @@ export default function ProfessionalFitnessDashboard() {
     });
   };
 
+  // Start/Stop fitness tracking (simulating Apple Fitness)
+  const startFitnessTracking = () => {
+    if (isTracking) {
+      // Stop tracking
+      setIsTracking(false);
+      if (trackingIntervalRef.current) {
+        clearInterval(trackingIntervalRef.current);
+        trackingIntervalRef.current = null;
+      }
+    } else {
+      // Start tracking
+      setIsTracking(true);
+      setTrackingStartTime(new Date());
+      
+      // Simulate real-time fitness tracking
+      trackingIntervalRef.current = setInterval(() => {
+        // Simulate steps (average 100 steps per minute when active)
+        const newSteps = Math.floor(Math.random() * 5) + 1;
+        setStepCount(prev => Math.min(prev + newSteps, stepTarget));
+        
+        // Calculate calories burned (0.04 calories per step)
+        const caloriesFromSteps = newSteps * 0.04;
+        setCaloriesBurned(prev => Math.min(prev + caloriesFromSteps, calorieTarget));
+        
+        // Add active minutes if moving
+        setActiveMinutes(prev => {
+          if (prev < activeMinutesTarget) {
+            return prev + 0.0167; // Add 1 second of activity
+          }
+          return prev;
+        });
+        
+        // Calculate distance (average step length 0.762 meters)
+        const newDistance = newSteps * 0.762 / 1000; // Convert to km
+        setDistanceWalked(prev => prev + newDistance);
+        
+        // Simulate heart rate variation
+        setHeartRate(prev => ({
+          ...prev,
+          current: Math.min(Math.max(prev.current + (Math.random() * 4 - 2), 60), 180)
+        }));
+      }, 1000); // Update every second
+    }
+  };
+
   // Load user from localStorage
   useEffect(() => {
     const savedUser = localStorage.getItem('fitpro_user');
@@ -209,10 +276,39 @@ export default function ProfessionalFitnessDashboard() {
       const userData = JSON.parse(savedUser);
       setUser(userData);
       setEditedUser(userData);
+      
+      // Initialize with saved fitness data if exists
+      const savedFitness = localStorage.getItem('fitpro_fitness_data');
+      if (savedFitness) {
+        const fitness = JSON.parse(savedFitness);
+        setStepCount(fitness.steps || 0);
+        setCaloriesBurned(fitness.calories || 0);
+        setActiveMinutes(fitness.activeMinutes || 0);
+        setDistanceWalked(fitness.distance || 0);
+      }
     } else {
       navigate('/login');
     }
   }, [navigate]);
+
+  // Save fitness data when component unmounts
+  useEffect(() => {
+    return () => {
+      if (trackingIntervalRef.current) {
+        clearInterval(trackingIntervalRef.current);
+      }
+      
+      // Save current fitness data
+      const fitnessData = {
+        steps: stepCount,
+        calories: caloriesBurned,
+        activeMinutes,
+        distance: distanceWalked,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('fitpro_fitness_data', JSON.stringify(fitnessData));
+    };
+  }, [stepCount, caloriesBurned, activeMinutes, distanceWalked]);
 
   // Greeting based on time
   useEffect(() => {
@@ -235,6 +331,7 @@ export default function ProfessionalFitnessDashboard() {
       condition,
       temperature: Math.floor(Math.random() * (35 - 15 + 1)) + 15,
       humidity: Math.floor(Math.random() * (90 - 40 + 1)) + 40,
+      windSpeed: (Math.random() * 20).toFixed(1),
       icon: weatherIcons[condition]
     });
   }, []);
@@ -270,16 +367,13 @@ export default function ProfessionalFitnessDashboard() {
     
     const baseCalories = user.weight ? user.weight * 30 : 2000;
     const calorieTarget = Math.round(baseCalories);
-    const caloriesBurned = Math.round(calorieTarget * 0.75);
     const caloriesRemaining = calorieTarget - caloriesBurned;
 
     const stepsTarget = 10000;
-    const stepsCurrent = Math.round(stepsTarget * 0.82);
-    const stepsRemaining = stepsTarget - stepsCurrent;
+    const stepsRemaining = stepsTarget - stepCount;
 
     const activeMinutesTarget = 60;
-    const activeMinutesCurrent = Math.round(activeMinutesTarget * 0.75);
-    const activeMinutesRemaining = activeMinutesTarget - activeMinutesCurrent;
+    const activeMinutesRemaining = activeMinutesTarget - activeMinutes;
 
     const waterTarget = user.weight ? (user.weight * 0.035).toFixed(1) : 3;
     const waterCurrent = Math.max(0, parseFloat(waterTarget) * 0.73).toFixed(1);
@@ -301,23 +395,23 @@ export default function ProfessionalFitnessDashboard() {
         bmi: parseFloat(bmi),
         bodyFat: parseFloat(bodyFat),
         muscleMass: parseFloat(muscleMass),
-        restingHR: 62,
+        restingHR: heartRate.resting,
         vo2Max: 45,
       },
       dailyStats: {
         calories: { 
           target: calorieTarget, 
-          burned: caloriesBurned, 
+          burned: Math.round(caloriesBurned), 
           remaining: caloriesRemaining 
         },
         steps: { 
           target: stepsTarget, 
-          current: stepsCurrent, 
+          current: stepCount, 
           remaining: stepsRemaining 
         },
         activeMinutes: { 
           target: activeMinutesTarget, 
-          current: activeMinutesCurrent, 
+          current: Math.round(activeMinutes), 
           remaining: activeMinutesRemaining 
         },
         water: { 
@@ -334,7 +428,12 @@ export default function ProfessionalFitnessDashboard() {
           target: sleepTarget, 
           actual: parseFloat(sleepActual), 
           quality: sleepQuality 
-        }
+        },
+        distance: {
+          current: distanceWalked,
+          target: distanceTarget
+        },
+        heartRate: heartRate
       },
       weeklyPerformance: {
         workouts: { 
@@ -502,7 +601,7 @@ export default function ProfessionalFitnessDashboard() {
 
     setFitnessData(data);
     setIsLoading(false);
-  }, [user]);
+  }, [user, stepCount, caloriesBurned, activeMinutes, distanceWalked, heartRate]);
 
   // Profile Functions
   const handleEditProfile = () => {
@@ -534,6 +633,7 @@ export default function ProfessionalFitnessDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('fitpro_user');
+    localStorage.removeItem('fitpro_fitness_data');
     navigate('/login');
   };
 
@@ -625,7 +725,21 @@ export default function ProfessionalFitnessDashboard() {
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'k';
     }
-    return num.toString();
+    return Math.round(num).toString();
+  };
+
+  // Calculate progress percentage
+  const calculateProgress = (current, target) => {
+    return Math.min((current / target) * 100, 100);
+  };
+
+  // Reset daily fitness data
+  const resetDailyFitness = () => {
+    setStepCount(0);
+    setCaloriesBurned(0);
+    setActiveMinutes(0);
+    setDistanceWalked(0);
+    localStorage.removeItem('fitpro_fitness_data');
   };
 
   if (isLoading || !user) return (
@@ -639,6 +753,12 @@ export default function ProfessionalFitnessDashboard() {
   );
 
   const WeatherIcon = weatherData?.icon || Cloud;
+
+  // Calculate progress rings
+  const stepProgress = calculateProgress(stepCount, stepTarget);
+  const calorieProgress = calculateProgress(caloriesBurned, calorieTarget);
+  const activityProgress = calculateProgress(activeMinutes, activeMinutesTarget);
+  const distanceProgress = calculateProgress(distanceWalked, distanceTarget);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
@@ -1122,29 +1242,272 @@ export default function ProfessionalFitnessDashboard() {
             </button>
           </div>
           
-          {/* Quick Stats Grid */}
+          {/* Quick Stats Grid - Apple Fitness Style */}
           {(showStats || !isMobile) && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { key: 'streak', value: fitnessData?.weeklyPerformance?.workouts?.streak || 0, label: 'Day Streak', icon: TrendingUp, color: 'text-green-500' },
-                { key: 'calories', value: fitnessData?.dailyStats?.calories?.burned || 0, label: 'Calories', icon: Flame, color: 'text-orange-500' },
-                { key: 'steps', value: fitnessData?.dailyStats?.steps?.current || 0, label: 'Steps', icon: Footprints, color: 'text-blue-500' },
-                { key: 'water', value: fitnessData?.dailyStats?.water?.current || 0, label: 'Hydration', icon: Droplets, color: 'text-cyan-500' },
-              ].map((stat) => (
-                <div key={stat.key} className="bg-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm border">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-gray-500">{stat.label}</p>
-                      <p className="text-lg sm:text-xl font-bold">
-                        {stat.key === 'steps' ? formatNumber(stat.value) : stat.key === 'water' ? `${stat.value}L` : stat.value}
-                      </p>
-                    </div>
-                    <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
+              <div className="bg-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Steps</p>
+                    <p className="text-lg sm:text-xl font-bold">
+                      {formatNumber(stepCount)}
+                    </p>
+                    <p className="text-xs text-gray-500">{stepTarget - stepCount} to go</p>
+                  </div>
+                  <div className="relative">
+                    <Footprints className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                    {isTracking && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+              
+              <div className="bg-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Calories</p>
+                    <p className="text-lg sm:text-xl font-bold">
+                      {Math.round(caloriesBurned)}
+                    </p>
+                    <p className="text-xs text-gray-500">{Math.round(calorieTarget - caloriesBurned)} left</p>
+                  </div>
+                  <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                </div>
+              </div>
+              
+              <div className="bg-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Active</p>
+                    <p className="text-lg sm:text-xl font-bold">
+                      {Math.round(activeMinutes)}min
+                    </p>
+                    <p className="text-xs text-gray-500">{Math.round(activeMinutesTarget - activeMinutes)}min to goal</p>
+                  </div>
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                </div>
+              </div>
+              
+              <div className="bg-white p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Distance</p>
+                    <p className="text-lg sm:text-xl font-bold">
+                      {distanceWalked.toFixed(1)}km
+                    </p>
+                    <p className="text-xs text-gray-500">{(distanceTarget - distanceWalked).toFixed(1)}km to go</p>
+                  </div>
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                </div>
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Apple Fitness Style Activity Rings */}
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Today's Activity</h2>
+              <p className="text-sm text-gray-600">Track your daily fitness goals</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={startFitnessTracking}
+                size="sm"
+                className={`${isTracking ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+              >
+                {isTracking ? (
+                  <>
+                    <span className="animate-pulse mr-1">●</span>
+                    Stop Tracking
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    Start Tracking
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={resetDailyFitness}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                Reset
+              </Button>
+            </div>
+          </div>
+          
+          {/* Activity Rings Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            {/* Steps Ring */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  {/* Background Circle */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  {/* Progress Circle */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#3b82f6"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - stepProgress / 100)}`}
+                    transform="rotate(-90 50 50)"
+                    className="transition-all duration-500 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Footprints className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 mb-1" />
+                  <span className="text-lg sm:text-2xl font-bold">{formatNumber(stepCount)}</span>
+                  <span className="text-xs text-gray-500">Steps</span>
+                </div>
+              </div>
+              <div className="mt-2 text-center">
+                <p className="text-sm font-medium">Move</p>
+                <p className="text-xs text-gray-600">{Math.round(stepProgress)}% of goal</p>
+              </div>
+            </div>
+            
+            {/* Calories Ring */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#f97316"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - calorieProgress / 100)}`}
+                    transform="rotate(-90 50 50)"
+                    className="transition-all duration-500 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Flame className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500 mb-1" />
+                  <span className="text-lg sm:text-2xl font-bold">{Math.round(caloriesBurned)}</span>
+                  <span className="text-xs text-gray-500">Cal</span>
+                </div>
+              </div>
+              <div className="mt-2 text-center">
+                <p className="text-sm font-medium">Exercise</p>
+                <p className="text-xs text-gray-600">{Math.round(calorieProgress)}% of goal</p>
+              </div>
+            </div>
+            
+            {/* Active Minutes Ring */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="#10b981"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - activityProgress / 100)}`}
+                    transform="rotate(-90 50 50)"
+                    className="transition-all duration-500 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 mb-1" />
+                  <span className="text-lg sm:text-2xl font-bold">{Math.round(activeMinutes)}</span>
+                  <span className="text-xs text-gray-500">Min</span>
+                </div>
+              </div>
+              <div className="mt-2 text-center">
+                <p className="text-sm font-medium">Stand</p>
+                <p className="text-xs text-gray-600">{Math.round(activityProgress)}% of goal</p>
+              </div>
+            </div>
+            
+            {/* Heart Rate */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-rose-50 to-pink-50 flex flex-col items-center justify-center">
+                  <HeartPulse className="w-8 h-8 sm:w-10 sm:h-10 text-rose-500 mb-2" />
+                  <span className="text-lg sm:text-2xl font-bold">{Math.round(heartRate.current)}</span>
+                  <span className="text-xs text-gray-500">BPM</span>
+                </div>
+                {isTracking && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                )}
+              </div>
+              <div className="mt-2 text-center">
+                <p className="text-sm font-medium">Heart Rate</p>
+                <p className="text-xs text-gray-600">Resting: {heartRate.resting} BPM</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Real-time Stats */}
+          <div className="mt-6 pt-6 border-t">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-blue-700">Current Pace</p>
+                <p className="text-xl font-bold">
+                  {stepCount > 0 ? ((distanceWalked / (activeMinutes / 60)) || 0).toFixed(1) : "0.0"} km/h
+                </p>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <p className="text-sm font-medium text-orange-700">Calories/Min</p>
+                <p className="text-xl font-bold">
+                  {activeMinutes > 0 ? (caloriesBurned / activeMinutes).toFixed(1) : "0.0"} cal/min
+                </p>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-sm font-medium text-green-700">Avg Steps/Min</p>
+                <p className="text-xl font-bold">
+                  {activeMinutes > 0 ? Math.round(stepCount / activeMinutes) : "0"}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <p className="text-sm font-medium text-purple-700">Time Active</p>
+                <p className="text-xl font-bold">
+                  {Math.floor(activeMinutes)}:{String(Math.round((activeMinutes % 1) * 60)).padStart(2, '0')}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions for Mobile */}
@@ -1172,7 +1535,7 @@ export default function ProfessionalFitnessDashboard() {
               {[
                 { value: "overview", label: "Overview", icon: BarChart3 },
                 { value: "workouts", label: "Workouts", icon: Dumbbell },
-                { value: "nutrition", label: "Nutrition", icon: Apple },
+                { value: "nutrition", label: "Nutrition", icon: AppleIcon },
                 { value: "profile", label: "Profile", icon: User },
                 { value: "progress", label: "Analytics", icon: TrendingUp },
               ].map((tab) => (
@@ -1260,7 +1623,9 @@ export default function ProfessionalFitnessDashboard() {
 
             {/* Daily Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {Object.entries(fitnessData?.dailyStats || {}).map(([key, stat]) => (
+              {Object.entries(fitnessData?.dailyStats || {}).filter(([key]) => 
+                !['heartRate', 'distance'].includes(key)
+              ).map(([key, stat]) => (
                 <Card key={key} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -1273,9 +1638,9 @@ export default function ProfessionalFitnessDashboard() {
                       {key === 'activeMinutes' && <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />}
                     </div>
                     <div className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
-                      {key === 'calories' && `${formatNumber(stat.burned || 0)}/${formatNumber(stat.target || 0)}`}
+                      {key === 'calories' && `${Math.round(stat.burned || 0)}/${formatNumber(stat.target || 0)}`}
                       {key === 'steps' && `${formatNumber(stat.current || 0)}`}
-                      {key === 'activeMinutes' && `${stat.current || 0}`}
+                      {key === 'activeMinutes' && `${Math.round(stat.current || 0)}`}
                       {key === 'water' && `${stat.current || 0}L`}
                       {key === 'protein' && `${stat.current || 0}g`}
                       {key === 'sleep' && `${stat.actual || 0}h`}
@@ -1285,7 +1650,7 @@ export default function ProfessionalFitnessDashboard() {
                       className="h-1.5 sm:h-2" 
                     />
                     <div className="text-xs text-gray-500 mt-1 sm:mt-2">
-                      {key === 'sleep' ? `${stat.quality || 0}% quality` : `${stat.remaining || 0} ${key === 'water' ? 'L' : key === 'protein' ? 'g' : ''} remaining`}
+                      {key === 'sleep' ? `${stat.quality || 0}% quality` : `${Math.round(stat.remaining || 0)} ${key === 'water' ? 'L' : key === 'protein' ? 'g' : ''} remaining`}
                     </div>
                   </CardContent>
                 </Card>
@@ -1639,7 +2004,7 @@ export default function ProfessionalFitnessDashboard() {
                 <p className="text-gray-600 text-sm sm:text-base">Monitor your daily nutrition intake</p>
               </div>
               <Button onClick={() => navigate('/nutrition')} size="sm" className="text-xs sm:text-sm">
-                <Apple className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <AppleIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                 Open Nutrition Planner
               </Button>
             </div>
