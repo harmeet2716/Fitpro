@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FitPros</string>
+    <string name="title_activity_main">FitPros</string>
+    <string name="package_name">com.fitpros.app</string>
+    <string name="custom_url_scheme">com.fitpros.app</string>
+</resources>

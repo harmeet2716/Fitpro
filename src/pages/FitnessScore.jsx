@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from "react";
-import Navbar from "./Navbar";
+import Navbar from "../components/ui/NavBar";
 import { Button } from "../components/ui/button";
 
 export default function FitnessScore({ user, setUser }) {

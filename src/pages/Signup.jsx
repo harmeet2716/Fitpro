@@ -37,54 +37,56 @@ export default function ProfessionalSignup({ setUser }) {
   };
 
   const handleSignup = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Validation
-    if (!firstname) return alert("First name is required");
-    if (!lastname) return alert("Last name is required");
-    if (!email) return alert("Email is required");
-    if (!password) return alert("Password is required");
-    if (!confirmPassword) return alert("Confirm Password is required");
-    if (!number) return alert("Contact Number is required");
-    if (password !== confirmPassword) return alert("Passwords do not match");
-    if (passwordError) return alert("Please enter a strong password");
-    if (!agreedToTerms) return alert("You must agree to the terms and conditions");
+  // Validation (keep as is)
+  if (!firstname) return alert("First name is required");
+  if (!lastname) return alert("Last name is required");
+  if (!email) return alert("Email is required");
+  if (!password) return alert("Password is required");
+  if (!confirmPassword) return alert("Confirm Password is required");
+  if (!number) return alert("Contact Number is required");
+  if (password !== confirmPassword) return alert("Passwords do not match");
+  if (passwordError) return alert("Please enter a strong password");
+  if (!agreedToTerms) return alert("You must agree to the terms and conditions");
 
-    setIsLoading(true);
-    try {
-     // Signup      
-      const res = await api.post("/users/signup", { firstname, lastname, email, password, number, gender });
+  setIsLoading(true);
+  try {
+    // Signup
+    const res = await api.post("/api/users/signup", { firstname, lastname, email, password, number, gender });
 
-      const data = await res.json();
+    // Axios already returns data in res.data
+    const data = res.data;
 
-      if (!res.ok) {
-        return alert(data.message || "Signup failed");
-      }
-
-      // Auto login after signup
-      const loginRes = await api.post("/api/users/login", { email, password });
-
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-        return alert(loginData.message || "Login failed after signup");
-      }
-
-      // Set user and navigate
-      if (setUser) {
-        setUser(loginData.user);
-      }
-      
-      alert("Signup successful! Welcome to FitPro!");
-      navigate("/dashboard");
-
-    } catch (err) {
-      console.error(err);
-      alert("Server error");
-    } finally {
-      setIsLoading(false);
+    // If backend sends an error message
+    if (res.status !== 201 && res.status !== 200) {
+      return alert(data.message || "Signup failed");
     }
-  };
+
+    // Auto login after signup
+    const loginRes = await api.post("/api/users/login", { email, password });
+    const loginData = loginRes.data;
+
+    if (loginRes.status !== 200) {
+      return alert(loginData.message || "Login failed after signup");
+    }
+
+    // Set user and navigate
+    if (setUser) {
+      setUser(loginData.user);
+    }
+
+    alert("Signup successful! Welcome to FitPro!");
+    navigate("/dashboard");
+
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Server error");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
