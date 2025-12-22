@@ -24,7 +24,7 @@ import {
   Moon,
   Sun
 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "./avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 
 export default function ProfessionalNavbar({ user, setUser, theme, setTheme }) {
   const navigate = useNavigate();
