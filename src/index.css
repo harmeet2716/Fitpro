@@ -1,3 +1,11 @@
+/* Replace your entire index.css with this temporarily */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Simple test */
+body {
+  margin: 0;
+  padding: 0;
+}
+
