@@ -15,7 +15,6 @@ import ProgressTracker from "./pages/ProgressTracker"; // New: Track workout pro
 import NutritionPlanner from "./pages/NutritionPlanner"; // New: Nutrition planning
 import ExerciseTutorial from "./pages/ExerciseTutorial"; // New: Single exercise tutorial page
 import CommunityWorkouts from "./pages/CommunityWorkouts"; // New: Community shared workouts
-import "./Animation.css";
 export default function App() {
   const [user, setUser] = useState(null);
 
